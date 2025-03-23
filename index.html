@@ -6,24 +6,25 @@
     <title>Android Code Viewer</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
             color: #333;
+            line-height: 1.5;
         }
         .container {
             background-color: white;
             border-radius: 8px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h1, h2 {
             color: #2c3e50;
         }
         .file-container {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border: 1px solid #ddd;
             border-radius: 6px;
             overflow: hidden;
@@ -44,10 +45,9 @@
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 5px 12px;
+            padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
             font-size: 14px;
         }
         .copy-btn:hover {
@@ -57,17 +57,12 @@
             background-color: #f9f9f9;
             padding: 15px;
             overflow-x: auto;
-            position: relative;
         }
         pre {
             margin: 0;
             white-space: pre-wrap;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: monospace;
             line-height: 1.4;
-        }
-        .code {
-            font-family: 'Courier New', Courier, monospace;
-            tab-size: 4;
         }
         .success-message {
             position: fixed;
@@ -86,8 +81,6 @@
             background-color: #f0f0f0;
             border-bottom: 1px solid #ddd;
             overflow-x: auto;
-            white-space: nowrap;
-            padding: 0 15px;
         }
         .tab {
             padding: 10px 15px;
@@ -101,37 +94,6 @@
         }
         .tab:hover:not(.active) {
             background-color: #e8e8e8;
-        }
-        .keyword {
-            color: #0033b3;
-            font-weight: bold;
-        }
-        .string {
-            color: #008000;
-        }
-        .comment {
-            color: #808080;
-            font-style: italic;
-        }
-        .tag {
-            color: #0000ff;
-        }
-        .attribute {
-            color: #7d5801;
-        }
-        .value {
-            color: #0000ff;
-        }
-        .operator {
-            color: #000000;
-        }
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
         }
     </style>
 </head>
@@ -153,7 +115,7 @@
                 <button class="copy-btn" id="copyButton">Copy Code</button>
             </div>
             <div class="code-container">
-                <pre id="codeContent" class="code"></pre>
+                <pre id="codeContent"></pre>
             </div>
         </div>
     </div>
@@ -161,16 +123,9 @@
     <div class="success-message" id="successMessage">Copied to clipboard!</div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const codeContent = document.getElementById('codeContent');
-            const copyButton = document.getElementById('copyButton');
-            const successMessage = document.getElementById('successMessage');
-            const fileTabs = document.getElementById('fileTabs');
-            const currentFileName = document.getElementById('currentFileName');
-            
-            // Define the code snippets
-            const codeSnippets = {
-                manifest: `<?xml version="1.0" encoding="utf-8"?>
+        // Code snippets
+        const codeSnippets = {
+            manifest: `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -196,7 +151,7 @@
     </application>
 
 </manifest>`,
-                activity_main: `<?xml version="1.0" encoding="utf-8"?>
+            activity_main: `<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -349,7 +304,7 @@
 
     </GridLayout>
 </LinearLayout>`,
-                theme: `<resources xmlns:tools="http://schemas.android.com/tools">
+            theme: `<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Caclulator" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
@@ -364,7 +319,7 @@
         <item name="android:textSize">16sp</item>
     </style>
 </resources>`,
-                main_activity: `package com.example.caclulator
+            main_activity: `package com.example.caclulator
 
 import android.os.Bundle
 import android.view.View
@@ -421,115 +376,72 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }`
-            };
-            
-            // File extensions for syntax highlighting
-            const fileExtensions = {
-                manifest: 'xml',
-                activity_main: 'xml',
-                theme: 'xml',
-                main_activity: 'kt'
-            };
-            
-            // File names for display
-            const fileNames = {
-                manifest: 'AndroidManifest.xml',
-                activity_main: 'activity_main.xml',
-                theme: 'theme.xml',
-                main_activity: 'MainActivity.kt'
-            };
-            
-            let currentFile = 'manifest';
-            
-            // Initial content load
-            updateCodeContent(currentFile);
-            
-            // Handle tab clicks
-            fileTabs.addEventListener('click', function(e) {
-                if (e.target.classList.contains('tab')) {
-                    // Remove active class from all tabs
-                    document.querySelectorAll('.tab').forEach(tab => {
-                        tab.classList.remove('active');
-                    });
-                    
-                    // Add active class to clicked tab
-                    e.target.classList.add('active');
-                    
-                    // Update content
-                    currentFile = e.target.getAttribute('data-file');
-                    updateCodeContent(currentFile);
-                }
-            });
-            
-            // Handle copy button click
-            copyButton.addEventListener('click', function() {
-                copyToClipboard(codeSnippets[currentFile]);
-                showSuccessMessage();
-            });
-            
-            function updateCodeContent(fileKey) {
-                const code = codeSnippets[fileKey];
-                const extension = fileExtensions[fileKey];
-                
-                // Update the file name display
-                currentFileName.textContent = fileNames[fileKey];
-                
-                // Apply syntax highlighting based on file extension
-                if (extension === 'xml') {
-                    codeContent.innerHTML = highlightXML(code);
-                } else if (extension === 'kt') {
-                    codeContent.innerHTML = highlightKotlin(code);
-                } else {
-                    codeContent.textContent = code;
-                }
-            }
-            
-            function copyToClipboard(text) {
-                navigator.clipboard.writeText(text).catch(err => {
-                    console.error('Could not copy text: ', err);
+        };
+        
+        // File names for display
+        const fileNames = {
+            manifest: 'AndroidManifest.xml',
+            activity_main: 'activity_main.xml',
+            theme: 'theme.xml',
+            main_activity: 'MainActivity.kt'
+        };
+        
+        // DOM elements
+        const codeContent = document.getElementById('codeContent');
+        const copyButton = document.getElementById('copyButton');
+        const successMessage = document.getElementById('successMessage');
+        const fileTabs = document.getElementById('fileTabs');
+        const currentFileName = document.getElementById('currentFileName');
+        
+        let currentFile = 'manifest';
+        
+        // Initial content load
+        updateCodeContent(currentFile);
+        
+        // Handle tab clicks
+        fileTabs.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tab')) {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
                 });
-            }
-            
-            function showSuccessMessage() {
-                successMessage.style.opacity = '1';
-                setTimeout(() => {
-                    successMessage.style.opacity = '0';
-                }, 2000);
-            }
-            
-            // Simple XML syntax highlighting
-            function highlightXML(code) {
-                return code
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/(".*?")/g, '<span class="string">$1</span>')
-                    .replace(/(&lt;\/?[a-zA-Z0-9_:-]+)/g, '<span class="tag">$1</span>')
-                    .replace(/([a-zA-Z0-9_:-]+)=(&quot;|")/g, '<span class="attribute">$1</span>=<span class="value">$2</span>')
-                    .replace(/(&lt;!--.*?--&gt;)/g, '<span class="comment">$1</span>');
-            }
-            
-            // Simple Kotlin syntax highlighting
-            function highlightKotlin(code) {
-                const keywords = ['package', 'import', 'class', 'interface', 'fun', 'val', 'var', 'private', 'public', 'protected', 'internal', 'override', 'return', 'when', 'if', 'else', 'try', 'catch', 'finally', 'for', 'while', 'do', 'as', 'is', 'in', 'object', 'super', 'this', 'lateinit'];
                 
-                let highlighted = code
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/(".*?")/g, '<span class="string">$1</span>')
-                    .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
-                    .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>');
+                // Add active class to clicked tab
+                e.target.classList.add('active');
                 
-                // Highlight keywords
-                for (const keyword of keywords) {
-                    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
-                    highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
-                }
-                
-                return highlighted;
+                // Update content
+                currentFile = e.target.getAttribute('data-file');
+                updateCodeContent(currentFile);
             }
         });
+        
+        // Handle copy button click
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(codeSnippets[currentFile]);
+            showSuccessMessage();
+        });
+        
+        function updateCodeContent(fileKey) {
+            const code = codeSnippets[fileKey];
+            
+            // Update the file name display
+            currentFileName.textContent = fileNames[fileKey];
+            codeContent.textContent = code;
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).catch(err => {
+                console.error('Could not copy text: ', err);
+                alert('Copying to clipboard failed. Your browser may not support this feature.');
+            });
+        }
+        
+        function showSuccessMessage() {
+            successMessage.style.opacity = '1';
+            setTimeout(() => {
+                successMessage.style.opacity = '0';
+            }, 2000);
+        }
     </script>
 </body>
 </html>
