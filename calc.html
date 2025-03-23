@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Code Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .file-container {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .file-header {
+            background-color: #f7f7f7;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .file-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .copy-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+        .code-container {
+            background-color: #f9f9f9;
+            padding: 15px;
+            overflow-x: auto;
+            position: relative;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.4;
+        }
+        .code {
+            font-family: 'Courier New', Courier, monospace;
+            tab-size: 4;
+        }
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #2ecc71;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .tabs {
+            display: flex;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 0 15px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 3px solid #3498db;
+            font-weight: bold;
+            background-color: #fff;
+        }
+        .tab:hover:not(.active) {
+            background-color: #e8e8e8;
+        }
+        .keyword {
+            color: #0033b3;
+            font-weight: bold;
+        }
+        .string {
+            color: #008000;
+        }
+        .comment {
+            color: #808080;
+            font-style: italic;
+        }
+        .tag {
+            color: #0000ff;
+        }
+        .attribute {
+            color: #7d5801;
+        }
+        .value {
+            color: #0000ff;
+        }
+        .operator {
+            color: #000000;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Android Code Files</h1>
+        <p>View and copy individual files with a single click</p>
+        
+        <div class="tabs" id="fileTabs">
+            <div class="tab active" data-file="manifest">AndroidManifest.xml</div>
+            <div class="tab" data-file="activity_main">activity_main.xml</div>
+            <div class="tab" data-file="theme">theme.xml</div>
+            <div class="tab" data-file="main_activity">MainActivity.kt</div>
+        </div>
+        
+        <div class="file-container">
+            <div class="file-header">
+                <span class="file-name" id="currentFileName">AndroidManifest.xml</span>
+                <button class="copy-btn" id="copyButton">Copy Code</button>
+            </div>
+            <div class="code-container">
+                <pre id="codeContent" class="code"></pre>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-message" id="successMessage">Copied to clipboard!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeContent = document.getElementById('codeContent');
+            const copyButton = document.getElementById('copyButton');
+            const successMessage = document.getElementById('successMessage');
+            const fileTabs = document.getElementById('fileTabs');
+            const currentFileName = document.getElementById('currentFileName');
+            
+            // Define the code snippets
+            const codeSnippets = {
+                manifest: `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Caclulator"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>`,
+                activity_main: `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center"
+    android:background="#ECECEC">
+
+    <TextView
+        android:id="@+id/txtResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:gravity="end"
+        android:padding="16dp"
+        android:text="0"
+        android:textSize="30sp" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="4"
+        android:rowCount="5"
+        android:paddingTop="20dp"
+        android:background="#ECECEC">
+
+        <!-- Row 1 -->
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="DEL"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="C"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="%"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="+"
+            tools:ignore="TextContrastCheck" />
+
+        <!-- Row 2 -->
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="1"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="2"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="3"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="/"
+            tools:ignore="TextContrastCheck" />
+
+        <!-- Row 3 -->
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="4"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="5"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="6"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="-"
+            tools:ignore="TextContrastCheck" />
+
+        <!-- Row 4 -->
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="7"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="8"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="9"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="X"
+            tools:ignore="TextContrastCheck" />
+
+        <!-- Row 5 -->
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="."
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:onClick="onButtonClick"
+            android:text="0"
+            tools:ignore="HardcodedText,TextContrastCheck" />
+
+        <Button
+            style="@style/CalcButton"
+            android:layout_columnSpan="2"
+            android:layout_columnWeight="2"
+            android:onClick="onEqualsClick"
+            android:text="="
+            tools:ignore="TextContrastCheck" />
+
+    </GridLayout>
+</LinearLayout>`,
+                theme: `<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Caclulator" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="CalcButton">
+        <item name="android:layout_width">90dp</item>
+        <item name="android:layout_height">60dp</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:background">#D3D3D3</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+</resources>`,
+                main_activity: `package com.example.caclulator
+
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import org.mozilla.javascript.Context
+import org.mozilla.javascript.Scriptable
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var txtResult: TextView
+    private var currentInput = ""
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        txtResult = findViewById(R.id.txtResult)
+    }
+
+    fun onButtonClick(view: View) {
+        val button = view as Button
+        val buttonText = button.text.toString()
+
+        when (buttonText) {
+            "C" -> currentInput = ""
+            "DEL" -> if (currentInput.isNotEmpty()) {
+                currentInput = currentInput.substring(0, currentInput.length - 1)
+            }
+            else -> currentInput += buttonText
+        }
+
+        txtResult.text = currentInput
+    }
+
+    fun onEqualsClick(view: View) {
+        try {
+            val result = evaluateExpression(currentInput)
+            txtResult.text = result.toString()
+        } catch (e: Exception) {
+            txtResult.text = "Error"
+        }
+    }
+
+    private fun evaluateExpression(expression: String): Double {
+        val context = Context.enter()
+        return try {
+            context.optimizationLevel = -1
+            val scope: Scriptable = context.initStandardObjects()
+            val result = context.evaluateString(scope, expression, "JavaScript", 1, null)
+            result.toString().toDouble()
+        } finally {
+            Context.exit()
+        }
+    }
+}`
+            };
+            
+            // File extensions for syntax highlighting
+            const fileExtensions = {
+                manifest: 'xml',
+                activity_main: 'xml',
+                theme: 'xml',
+                main_activity: 'kt'
+            };
+            
+            // File names for display
+            const fileNames = {
+                manifest: 'AndroidManifest.xml',
+                activity_main: 'activity_main.xml',
+                theme: 'theme.xml',
+                main_activity: 'MainActivity.kt'
+            };
+            
+            let currentFile = 'manifest';
+            
+            // Initial content load
+            updateCodeContent(currentFile);
+            
+            // Handle tab clicks
+            fileTabs.addEventListener('click', function(e) {
+                if (e.target.classList.contains('tab')) {
+                    // Remove active class from all tabs
+                    document.querySelectorAll('.tab').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked tab
+                    e.target.classList.add('active');
+                    
+                    // Update content
+                    currentFile = e.target.getAttribute('data-file');
+                    updateCodeContent(currentFile);
+                }
+            });
+            
+            // Handle copy button click
+            copyButton.addEventListener('click', function() {
+                copyToClipboard(codeSnippets[currentFile]);
+                showSuccessMessage();
+            });
+            
+            function updateCodeContent(fileKey) {
+                const code = codeSnippets[fileKey];
+                const extension = fileExtensions[fileKey];
+                
+                // Update the file name display
+                currentFileName.textContent = fileNames[fileKey];
+                
+                // Apply syntax highlighting based on file extension
+                if (extension === 'xml') {
+                    codeContent.innerHTML = highlightXML(code);
+                } else if (extension === 'kt') {
+                    codeContent.innerHTML = highlightKotlin(code);
+                } else {
+                    codeContent.textContent = code;
+                }
+            }
+            
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).catch(err => {
+                    console.error('Could not copy text: ', err);
+                });
+            }
+            
+            function showSuccessMessage() {
+                successMessage.style.opacity = '1';
+                setTimeout(() => {
+                    successMessage.style.opacity = '0';
+                }, 2000);
+            }
+            
+            // Simple XML syntax highlighting
+            function highlightXML(code) {
+                return code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/(".*?")/g, '<span class="string">$1</span>')
+                    .replace(/(&lt;\/?[a-zA-Z0-9_:-]+)/g, '<span class="tag">$1</span>')
+                    .replace(/([a-zA-Z0-9_:-]+)=(&quot;|")/g, '<span class="attribute">$1</span>=<span class="value">$2</span>')
+                    .replace(/(&lt;!--.*?--&gt;)/g, '<span class="comment">$1</span>');
+            }
+            
+            // Simple Kotlin syntax highlighting
+            function highlightKotlin(code) {
+                const keywords = ['package', 'import', 'class', 'interface', 'fun', 'val', 'var', 'private', 'public', 'protected', 'internal', 'override', 'return', 'when', 'if', 'else', 'try', 'catch', 'finally', 'for', 'while', 'do', 'as', 'is', 'in', 'object', 'super', 'this', 'lateinit'];
+                
+                let highlighted = code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/(".*?")/g, '<span class="string">$1</span>')
+                    .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
+                    .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>');
+                
+                // Highlight keywords
+                for (const keyword of keywords) {
+                    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                    highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+                }
+                
+                return highlighted;
+            }
+        });
+    </script>
+</body>
+</html>
